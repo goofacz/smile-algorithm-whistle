@@ -23,5 +23,6 @@ packet inet::IdealMacFrame;
 
 packet BeaconFrame extends inet::IdealMacFrame
 {
-	bool echoFrame = false;
+    unsigned int sequenceNumber = 0;
+	bool echo = false;
 }
