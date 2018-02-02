@@ -28,7 +28,7 @@ void AnchorApplication::initialize(int stage)
 {
   IdealApplication::initialize(stage);
 
-  if (stage == inet::INITSTAGE_APPLICATION_LAYER) {
+  if (stage == inet::INITSTAGE_LOCAL) {
     const auto& baseAnchorParameter = par("baseAnchor");
     baseAnchor = baseAnchorParameter.boolValue();
 
