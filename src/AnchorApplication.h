@@ -40,6 +40,9 @@ class AnchorApplication : public smile::IdealApplication
   void handleRxCompletionSignal(const IdealRxCompletion& completion) override;
 
   void handleTxCompletionSignal(const IdealTxCompletion& completion) override;
+
+  bool baseAnchor{false};
+  SimTime echoDelay;
 };
 
 }  // namespace whistle

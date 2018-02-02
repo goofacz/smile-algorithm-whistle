@@ -20,4 +20,7 @@ simple AnchorApplication extends IdealApplication
 {
     parameters:
         @class(smile::algorithm::whistle::AnchorApplication);
-}
+        bool baseAnchor = default(false);
+        int echoDelay @unit(ms) = default(35ms);
+}        
+   

@@ -14,6 +14,9 @@
 //
 
 #include "AnchorApplication.h"
+#include <inet/common/INETDefs.h>
+#include "BeaconFrame_m.h"
+#include "utilities.h"
 
 namespace smile {
 namespace algorithm {
@@ -24,9 +27,33 @@ Define_Module(AnchorApplication);
 void AnchorApplication::initialize(int stage)
 {
   IdealApplication::initialize(stage);
+
+  if (stage == inet::INITSTAGE_APPLICATION_LAYER) {
+    const auto& baseAnchorParameter = par("baseAnchor");
+    baseAnchor = baseAnchorParameter.boolValue();
+
+    const auto& echoDelayParameter = par("echoDelay");
+    echoDelay = SimTime(echoDelayParameter.longValue(), SIMTIME_MS);
+  }
 }
 
-void AnchorApplication::handleIncommingMessage(cMessage* newMessage) {}
+void AnchorApplication::handleIncommingMessage(cMessage* newMessage)
+{
+  const auto frame = dynamic_unique_ptr_cast<BeaconFrame>(std::unique_ptr<cMessage>{newMessage});
+  if (frame->getEcho()) {
+    return;
+  }
+
+  if (!baseAnchor) {
+    return;
+  }
+
+  auto echoFrame = createFrame<BeaconFrame>(inet::MACAddress::BROADCAST_ADDRESS);
+  echoFrame->setSequenceNumber(frame->getSequenceNumber());
+  echoFrame->setBitLength(10);
+  echoFrame->setEcho(true);
+  sendDelayed(echoFrame.release(), echoDelay, "out");
+}
 
 void AnchorApplication::handleRxCompletionSignal(const IdealRxCompletion& completion) {}
 
