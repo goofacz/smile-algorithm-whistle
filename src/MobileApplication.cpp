@@ -15,6 +15,7 @@
 
 #include "MobileApplication.h"
 #include "BeaconFrame_m.h"
+#include "CsvLogger.h"
 
 namespace smile {
 namespace algorithm {
@@ -31,6 +32,19 @@ void MobileApplication::initialize(int stage)
     frameTxInterval = SimTime(frameTxIntervalParameter.longValue(), SIMTIME_MS);
   }
 
+  if (stage == inet::INITSTAGE_PHYSICAL_ENVIRONMENT_2) {
+    auto& logger = getLogger();
+    const auto handle = logger.obtainHandle("mobiles");
+    const auto& nicDriver = getNicDriver();
+    const auto& address = nicDriver.getMacAddress();
+    const auto entry = csv_logger::compose(address, getCurrentTruePosition());
+    logger.append(handle, entry);
+
+    std::string handleName{"mobile_"};
+    handleName += address.str();
+    beaconsLog = logger.obtainHandle(handleName);
+  }
+
   if (stage == inet::INITSTAGE_APPLICATION_LAYER) {
     sendFrame();
   }
@@ -41,10 +55,21 @@ void MobileApplication::handleIncommingMessage(cMessage* newMessage)
   std::unique_ptr<cMessage>{newMessage};
 }
 
-void MobileApplication::handleRxCompletionSignal(const smile::IdealRxCompletion& completion) {}
+void MobileApplication::handleRxCompletionSignal(const smile::IdealRxCompletion& completion)
+{
+  const auto frame = omnetpp::check_and_cast<const BeaconFrame*>(completion.getFrame());
+  const auto entry = csv_logger::compose(completion, frame->getSrc(), frame->getDest(), frame->getSequenceNumber());
+  auto& logger = getLogger();
+  logger.append(beaconsLog, entry);
+}
 
 void MobileApplication::handleTxCompletionSignal(const smile::IdealTxCompletion& completion)
 {
+  const auto frame = omnetpp::check_and_cast<const BeaconFrame*>(completion.getFrame());
+  const auto entry = csv_logger::compose(completion, frame->getSrc(), frame->getDest(), frame->getSequenceNumber());
+  auto& logger = getLogger();
+  logger.append(beaconsLog, entry);
+
   sendFrame();
 }
 

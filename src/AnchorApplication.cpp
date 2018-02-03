@@ -16,6 +16,7 @@
 #include "AnchorApplication.h"
 #include <inet/common/INETDefs.h>
 #include "BeaconFrame_m.h"
+#include "CsvLogger.h"
 #include "utilities.h"
 
 namespace smile {
@@ -34,6 +35,19 @@ void AnchorApplication::initialize(int stage)
 
     const auto& echoDelayParameter = par("echoDelay");
     echoDelay = SimTime(echoDelayParameter.longValue(), SIMTIME_MS);
+  }
+
+  if (stage == inet::INITSTAGE_PHYSICAL_ENVIRONMENT_2) {
+    auto& logger = getLogger();
+    const auto handle = logger.obtainHandle("anchors");
+    const auto& nicDriver = getNicDriver();
+    const auto& address = nicDriver.getMacAddress();
+    const auto entry = csv_logger::compose(address, getCurrentTruePosition());
+    logger.append(handle, entry);
+
+    std::string handleName{"anchor_"};
+    handleName += address.str();
+    beaconsLog = logger.obtainHandle(handleName);
   }
 }
 
@@ -55,9 +69,21 @@ void AnchorApplication::handleIncommingMessage(cMessage* newMessage)
   sendDelayed(echoFrame.release(), echoDelay, "out");
 }
 
-void AnchorApplication::handleRxCompletionSignal(const IdealRxCompletion& completion) {}
+void AnchorApplication::handleRxCompletionSignal(const IdealRxCompletion& completion)
+{
+  const auto frame = omnetpp::check_and_cast<const BeaconFrame*>(completion.getFrame());
+  const auto entry = csv_logger::compose(completion, frame->getSrc(), frame->getDest(), frame->getSequenceNumber());
+  auto& logger = getLogger();
+  logger.append(beaconsLog, entry);
+}
 
-void AnchorApplication::handleTxCompletionSignal(const IdealTxCompletion& completion) {}
+void AnchorApplication::handleTxCompletionSignal(const IdealTxCompletion& completion)
+{
+  const auto frame = omnetpp::check_and_cast<const BeaconFrame*>(completion.getFrame());
+  const auto entry = csv_logger::compose(completion, frame->getSrc(), frame->getDest(), frame->getSequenceNumber());
+  auto& logger = getLogger();
+  logger.append(beaconsLog, entry);
+}
 
 }  // namespace whistle
 }  // namespace algorithm

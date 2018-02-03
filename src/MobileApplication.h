@@ -45,6 +45,7 @@ class MobileApplication : public smile::IdealApplication
 
   SimTime frameTxInterval;
   unsigned int sequenceNumberGenerator{0};
+  Logger::Handle beaconsLog;
 };
 
 }  // namespace whistle
