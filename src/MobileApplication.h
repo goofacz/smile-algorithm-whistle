@@ -41,7 +41,7 @@ class MobileApplication : public smile::IdealApplication
 
   void handleTxCompletionSignal(const smile::IdealTxCompletion& completion) override;
 
-  void sendFrame();
+  void sendFrame(const SimTime& delay);
 
   SimTime frameTxInterval;
   unsigned int sequenceNumberGenerator{0};

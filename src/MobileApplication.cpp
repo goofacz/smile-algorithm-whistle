@@ -46,7 +46,7 @@ void MobileApplication::initialize(int stage)
   }
 
   if (stage == inet::INITSTAGE_APPLICATION_LAYER) {
-    sendFrame();
+    sendFrame(0);
   }
 }
 
@@ -70,16 +70,17 @@ void MobileApplication::handleTxCompletionSignal(const smile::IdealTxCompletion&
   auto& logger = getLogger();
   logger.append(beaconsLog, entry);
 
-  sendFrame();
+  const auto delay = completion.getOperationBeginClockTimestamp() + frameTxInterval - clockTime();
+  sendFrame(delay);
 }
 
-void MobileApplication::sendFrame()
+void MobileApplication::sendFrame(const SimTime& delay)
 {
   auto frame = createFrame<BeaconFrame>(inet::MACAddress::BROADCAST_ADDRESS);
   frame->setSequenceNumber(sequenceNumberGenerator);
   frame->setBitLength(10);
   frame->setEcho(false);
-  sendDelayed(frame.release(), frameTxInterval, "out");
+  sendDelayed(frame.release(), delay, "out");
 
   sequenceNumberGenerator++;
 }
