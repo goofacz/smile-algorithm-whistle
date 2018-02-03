@@ -13,5 +13,18 @@
 # along with this program.  If not, see http:#www.gnu.org/licenses/.
 #
 
+import argparse
+from simulation import *
+from whistle.anchors import Anchors
+
 if __name__ == '__main__':
-    pass
+    parser = argparse.ArgumentParser(description='Process Whistle ranging data.')
+    parser.add_argument('logs_directory_path', type=str, nargs=1, help='Path to directory holding CSV logs')
+    arguments = parser.parse_args()
+    logs_directory_path = arguments.logs_directory_path[0]
+
+    anchors, mobiles = load_nodes(logs_directory_path)
+    anchors_beacons = load_nodes_beacons(logs_directory_path, anchors[:, Anchors.MAC_ADDRESS])
+    simulation_results = None
+    for mobile_address in mobiles[:, Anchors.MAC_ADDRESS]:
+        beacons = load_mobile_beacons(logs_directory_path, mobile_address)

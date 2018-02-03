@@ -16,6 +16,6 @@
 import smile.nodes
 
 
-class Nodes(smile.nodes.Nodes):
+class Anchors(smile.nodes.Nodes):
     BASE_ANCHOR = 4
     ECHO_DELAY = 5

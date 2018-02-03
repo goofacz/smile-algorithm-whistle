@@ -16,21 +16,21 @@
 import unittest
 from io import StringIO
 import numpy as np
-from whistle.nodes import Nodes
+from whistle.anchors import Anchors
 
 
-class TestNodes(unittest.TestCase):
+class TestAnchors(unittest.TestCase):
     def test_load_csv(self):
         content = StringIO("17592186044417,0.000000,0.000000,0.000000,1,0\n17592186044418,75.000000,0.000000,0.000000,0,35000000000")
 
         # Check whether data is loaded into correct array
-        nodes = Nodes.load_csv(content)
+        nodes = Anchors.load_csv(content)
         self.assertTrue(isinstance(nodes, np.ndarray))
         self.assertTupleEqual((2, 6), nodes.shape)
 
         # Check access to whistle-specific fields
-        np.testing.assert_equal((1, 0), nodes[:, Nodes.BASE_ANCHOR])
-        np.testing.assert_equal((0, 35000000000), nodes[:, Nodes.ECHO_DELAY])
+        np.testing.assert_equal((1, 0), nodes[:, Anchors.BASE_ANCHOR])
+        np.testing.assert_equal((0, 35000000000), nodes[:, Anchors.ECHO_DELAY])
 
 
 if __name__ == '__main__':
