@@ -16,8 +16,7 @@
 import numpy as np
 import scipy.constants as scc
 
-from smile.frames import Frames
-from smile.nodes import Nodes
+from whistle.beacons import Beacons
 from smile.results import Results
 
 
@@ -55,61 +54,29 @@ def _tdoa_analytical(coordinates, distances):
     return np.asarray((X, Y))
 
 
-def localize_mobile(anchors, beacons):
-    #tx_delay = tx_delay * 1e+9  # ms -> ps
+def localize_mobile(mac_address, anchors, all_anchors_beacons, all_mobiles_beacons):
     assert (scc.unit('speed of light in vacuum') == 'm s^-1')
     c = scc.value('speed of light in vacuum')
     c = c * 1e-12  # m/s -> m/ps
 
+    # Filter out other mobile nodes
+    mobile_beacons = all_mobiles_beacons[all_mobiles_beacons[:, Beacons.NODE_MAC_ADDRESS] == mac_address]
+
     # Filter out all sequence numbers for which mobile node received less than three beacons
-    sequence_numbers, sequence_number_counts = np.unique(beacons[:, Frames.SEQUENCE_NUMBER], return_counts=True)
-    sequence_numbers = sequence_numbers[sequence_number_counts > 3]
+    sequence_numbers, sequence_number_counts = np.unique(mobile_beacons[:, Beacons.SEQUENCE_NUMBER], return_counts=True)
+    # sequence_numbers = sequence_numbers[sequence_number_counts >= 3]
 
-    result = Results.create_array(sequence_numbers.size, position_dimensions=2)
+    results = Results.create_array(sequence_numbers.size, position_dimensions=2)
 
-    anchor_triples = ((0, 1, 2), (1, 2, 3))
-    for i in range(sequence_numbers.size):
-        sequence_number = sequence_numbers[i]
+    for sequence_number in sequence_numbers:
+        sequence_number_condition = mobile_beacons[:, Beacons.SEQUENCE_NUMBER] == sequence_number
+        is_echo_condition = mobile_beacons[:, Beacons.IS_ECHO] == 1
+        is_not_echo_condition = np.logical_not(is_echo_condition)
 
-        # Extract beacons with specific sequence number
-        current_beacons = beacons[np.where(beacons[:, Frames.SEQUENCE_NUMBER] == sequence_number)]
-        positions = []
+        original_beacons_condition = np.logical_and(sequence_number_condition, is_not_echo_condition)
+        echo_beacons_condition = np.logical_and(sequence_number_condition, is_echo_condition)
 
-        # Evaluate different anchors sets
-        for anchor_triple in anchor_triples:
-            # Compute distances between anchor pairs (first, second) and (second, third)
-            anchor_distances = np.zeros(2)
-            anchor_distances[0] = np.abs(np.linalg.norm(anchors[anchor_triple[1], Nodes.POSITION_2D] -
-                                                        anchors[anchor_triple[0], Nodes.POSITION_2D]))
-            anchor_distances[1] = np.abs(np.linalg.norm(anchors[anchor_triple[2], Nodes.POSITION_2D] -
-                                                        anchors[anchor_triple[1], Nodes.POSITION_2D]))
+        original_beacons = mobile_beacons[original_beacons_condition, :]
+        echo_beacons = mobile_beacons[echo_beacons_condition, :]
 
-            # Compute ToF between anchor pairs
-            anchor_tx_delays = anchor_distances / c + tx_delay
-
-            # Follow algorithm steps
-            anchor_coordinates = np.zeros((3, 2))
-            anchor_coordinates[0] = anchors[anchor_triple[1], Nodes.POSITION_2D]
-            anchor_coordinates[1] = anchors[anchor_triple[0], Nodes.POSITION_2D]
-            anchor_coordinates[2] = anchors[anchor_triple[2], Nodes.POSITION_2D]
-
-            timestamps = np.full(3, float('nan'))
-            timestamps[1] = current_beacons[anchor_triple[1], Frames.BEGIN_CLOCK_TIMESTAMP] - \
-                            current_beacons[anchor_triple[0], Frames.BEGIN_CLOCK_TIMESTAMP] - anchor_tx_delays[0]
-            timestamps[2] = current_beacons[anchor_triple[2], Frames.BEGIN_CLOCK_TIMESTAMP] - \
-                            current_beacons[anchor_triple[1], Frames.BEGIN_CLOCK_TIMESTAMP] - anchor_tx_delays[1]
-
-            distances = timestamps * c
-
-            positions.append(_tdoa_analytical(anchor_coordinates, distances))
-            result[i, Results.BEGIN_TRUE_POSITION_3D] = current_beacons[0, Frames.BEGIN_TRUE_POSITION_3D]
-            result[i, Results.END_TRUE_POSITION_3D] = current_beacons[2, Frames.END_TRUE_POSITION_3D]
-
-        # Choose better position
-        # TODO Propose better solution, for now just choose position being closer to (0, 0)
-        if np.abs(np.linalg.norm((0, 0) - positions[0])) < np.abs(np.linalg.norm((0, 0) - positions[1])):
-            result[i, Results.POSITION_2D] = positions[0]
-        else:
-            result[i, Results.POSITION_2D] = positions[1]
-
-    return result
+    return results

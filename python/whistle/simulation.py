@@ -15,8 +15,7 @@
 
 from os import path
 from whistle.anchors import Anchors
-from smile.frames import Frames
-from smile.helpers import mac_address_to_string
+from whistle.beacons import Beacons
 
 
 def load_nodes(directory_path):
@@ -25,15 +24,11 @@ def load_nodes(directory_path):
     return Anchors.load_csv(anchors_file_path), Anchors.load_csv(mobiles_file_path)
 
 
-def load_nodes_beacons(directory_path, mac_addresses):
-    beacons = {}
-    for mac_address in mac_addresses:
-        file_path = path.join(directory_path, 'whistle_anchor_{0}.csv'.format(mac_address_to_string(mac_address)))
-        beacons[mac_address] = Frames.load_csv(file_path)
-    return beacons
+def load_mobiles_beacons(directory_path):
+    file_path = path.join(directory_path, 'whistle_mobiles_beacons.csv')
+    return Beacons.load_csv(file_path)
 
 
-def load_mobile_beacons(directory_path, mac_address):
-    mac_address = mac_address_to_string(mac_address)
-    file_path = path.join(directory_path, 'whistle_mobile_{0}.csv'.format(mac_address))
-    return Frames.load_csv(file_path)
+def load_anchors_beacons(directory_path):
+    file_path = path.join(directory_path, 'whistle_anchors_beacons.csv')
+    return Beacons.load_csv(file_path)

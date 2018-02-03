@@ -13,6 +13,10 @@
 # along with this program.  If not, see http:#www.gnu.org/licenses/.
 #
 
+# There's no need to display interactive plots
+import matplotlib
+matplotlib.use('AGG')
+
 import unittest
 from io import StringIO
 import numpy as np
