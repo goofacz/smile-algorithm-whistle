@@ -16,7 +16,7 @@
 #include "AnchorApplication.h"
 #include <inet/common/INETDefs.h>
 #include "BeaconFrame_m.h"
-#include "CsvLogger.h"
+#include "CsvLoggerExtensions.h"
 #include "utilities.h"
 
 namespace smile {
@@ -37,16 +37,13 @@ void AnchorApplication::initialize(int stage)
     echoDelay = SimTime(echoDelayParameter.longValue(), SIMTIME_MS);
   }
 
-  if (stage == inet::INITSTAGE_PHYSICAL_ENVIRONMENT_2) {
+  if (stage == inet::INITSTAGE_APPLICATION_LAYER) {
     auto& logger = getLogger();
     const auto handle = logger.obtainHandle("anchors");
-    const auto& nicDriver = getNicDriver();
-    const auto& address = nicDriver.getMacAddress();
-    const auto entry = csv_logger::compose(address, getCurrentTruePosition(), baseAnchor, echoDelay);
+    const auto entry = csv_logger::compose(getMacAddress(), getCurrentTruePosition(), baseAnchor, echoDelay);
     logger.append(handle, entry);
 
-    std::string handleName{"anchor_"};
-    handleName += address.str();
+    std::string handleName{"anchors_beacons"};
     beaconsLog = logger.obtainHandle(handleName);
   }
 }
@@ -72,7 +69,7 @@ void AnchorApplication::handleIncommingMessage(cMessage* newMessage)
 void AnchorApplication::handleRxCompletionSignal(const IdealRxCompletion& completion)
 {
   const auto frame = omnetpp::check_and_cast<const BeaconFrame*>(completion.getFrame());
-  const auto entry = csv_logger::compose(completion, frame->getSrc(), frame->getDest(), frame->getSequenceNumber());
+  const auto entry = csv_logger::compose(getMacAddress(), completion, *frame);
   auto& logger = getLogger();
   logger.append(beaconsLog, entry);
 }
@@ -80,7 +77,7 @@ void AnchorApplication::handleRxCompletionSignal(const IdealRxCompletion& comple
 void AnchorApplication::handleTxCompletionSignal(const IdealTxCompletion& completion)
 {
   const auto frame = omnetpp::check_and_cast<const BeaconFrame*>(completion.getFrame());
-  const auto entry = csv_logger::compose(completion, frame->getSrc(), frame->getDest(), frame->getSequenceNumber());
+  const auto entry = csv_logger::compose(getMacAddress(), completion, *frame);
   auto& logger = getLogger();
   logger.append(beaconsLog, entry);
 }

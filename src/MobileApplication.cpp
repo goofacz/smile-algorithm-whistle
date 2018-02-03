@@ -15,7 +15,7 @@
 
 #include "MobileApplication.h"
 #include "BeaconFrame_m.h"
-#include "CsvLogger.h"
+#include "CsvLoggerExtensions.h"
 
 namespace smile {
 namespace algorithm {
@@ -39,20 +39,15 @@ void MobileApplication::initialize(int stage)
     frameTxInterval = SimTime(frameTxIntervalParameter.longValue(), SIMTIME_MS);
   }
 
-  if (stage == inet::INITSTAGE_PHYSICAL_ENVIRONMENT_2) {
+  if (stage == inet::INITSTAGE_APPLICATION_LAYER) {
     auto& logger = getLogger();
     const auto handle = logger.obtainHandle("mobiles");
-    const auto& nicDriver = getNicDriver();
-    const auto& address = nicDriver.getMacAddress();
-    const auto entry = csv_logger::compose(address, getCurrentTruePosition(), frameTxInterval);
+    const auto entry = csv_logger::compose(getMacAddress(), getCurrentTruePosition(), frameTxInterval);
     logger.append(handle, entry);
 
-    std::string handleName{"mobile_"};
-    handleName += address.str();
+    std::string handleName{"mobiles_beacons"};
     beaconsLog = logger.obtainHandle(handleName);
-  }
 
-  if (stage == inet::INITSTAGE_APPLICATION_LAYER) {
     frameTxTimerMessage = new cMessage{"frameTxTimerMessage"};
     sendFrame();
     scheduleAt(clockTime() + frameTxInterval, frameTxTimerMessage);
@@ -73,7 +68,7 @@ void MobileApplication::handleIncommingMessage(cMessage* newMessage)
 void MobileApplication::handleRxCompletionSignal(const smile::IdealRxCompletion& completion)
 {
   const auto frame = omnetpp::check_and_cast<const BeaconFrame*>(completion.getFrame());
-  const auto entry = csv_logger::compose(completion, frame->getSrc(), frame->getDest(), frame->getSequenceNumber());
+  const auto entry = csv_logger::compose(getMacAddress(), completion, *frame);
   auto& logger = getLogger();
   logger.append(beaconsLog, entry);
 }
@@ -81,7 +76,7 @@ void MobileApplication::handleRxCompletionSignal(const smile::IdealRxCompletion&
 void MobileApplication::handleTxCompletionSignal(const smile::IdealTxCompletion& completion)
 {
   const auto frame = omnetpp::check_and_cast<const BeaconFrame*>(completion.getFrame());
-  const auto entry = csv_logger::compose(completion, frame->getSrc(), frame->getDest(), frame->getSequenceNumber());
+  const auto entry = csv_logger::compose(getMacAddress(), completion, *frame);
   auto& logger = getLogger();
   logger.append(beaconsLog, entry);
 }
