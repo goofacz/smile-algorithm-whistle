@@ -23,6 +23,13 @@ namespace whistle {
 
 Define_Module(MobileApplication);
 
+MobileApplication::~MobileApplication()
+{
+  if (frameTxTimerMessage) {
+    cancelAndDelete(frameTxTimerMessage);
+  }
+}
+
 void MobileApplication::initialize(int stage)
 {
   IdealApplication::initialize(stage);
@@ -37,7 +44,7 @@ void MobileApplication::initialize(int stage)
     const auto handle = logger.obtainHandle("mobiles");
     const auto& nicDriver = getNicDriver();
     const auto& address = nicDriver.getMacAddress();
-    const auto entry = csv_logger::compose(address, getCurrentTruePosition());
+    const auto entry = csv_logger::compose(address, getCurrentTruePosition(), frameTxInterval);
     logger.append(handle, entry);
 
     std::string handleName{"mobile_"};
@@ -46,8 +53,16 @@ void MobileApplication::initialize(int stage)
   }
 
   if (stage == inet::INITSTAGE_APPLICATION_LAYER) {
-    sendFrame(0);
+    frameTxTimerMessage = new cMessage{"frameTxTimerMessage"};
+    sendFrame();
+    scheduleAt(clockTime() + frameTxInterval, frameTxTimerMessage);
   }
+}
+
+void MobileApplication::handleSelfMessage(cMessage* newMessage)
+{
+  sendFrame();
+  scheduleAt(clockTime() + frameTxInterval, newMessage);
 }
 
 void MobileApplication::handleIncommingMessage(cMessage* newMessage)
@@ -69,18 +84,15 @@ void MobileApplication::handleTxCompletionSignal(const smile::IdealTxCompletion&
   const auto entry = csv_logger::compose(completion, frame->getSrc(), frame->getDest(), frame->getSequenceNumber());
   auto& logger = getLogger();
   logger.append(beaconsLog, entry);
-
-  const auto delay = completion.getOperationBeginClockTimestamp() + frameTxInterval - clockTime();
-  sendFrame(delay);
 }
 
-void MobileApplication::sendFrame(const SimTime& delay)
+void MobileApplication::sendFrame()
 {
   auto frame = createFrame<BeaconFrame>(inet::MACAddress::BROADCAST_ADDRESS);
   frame->setSequenceNumber(sequenceNumberGenerator);
   frame->setBitLength(10);
   frame->setEcho(false);
-  sendDelayed(frame.release(), delay, "out");
+  sendDelayed(frame.release(), frameTxInterval, "out");
 
   sequenceNumberGenerator++;
 }

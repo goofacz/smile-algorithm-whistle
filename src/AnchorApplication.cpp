@@ -42,7 +42,7 @@ void AnchorApplication::initialize(int stage)
     const auto handle = logger.obtainHandle("anchors");
     const auto& nicDriver = getNicDriver();
     const auto& address = nicDriver.getMacAddress();
-    const auto entry = csv_logger::compose(address, getCurrentTruePosition());
+    const auto entry = csv_logger::compose(address, getCurrentTruePosition(), baseAnchor, echoDelay);
     logger.append(handle, entry);
 
     std::string handleName{"anchor_"};

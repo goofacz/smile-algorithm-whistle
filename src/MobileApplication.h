@@ -27,7 +27,7 @@ class MobileApplication : public smile::IdealApplication
   MobileApplication() = default;
   MobileApplication(const MobileApplication& source) = delete;
   MobileApplication(MobileApplication&& source) = delete;
-  ~MobileApplication() = default;
+  ~MobileApplication();
 
   MobileApplication& operator=(const MobileApplication& source) = delete;
   MobileApplication& operator=(MobileApplication&& source) = delete;
@@ -35,15 +35,18 @@ class MobileApplication : public smile::IdealApplication
  private:
   void initialize(int stage) override;
 
+  void handleSelfMessage(cMessage* newMessage) override;
+
   void handleIncommingMessage(cMessage* newMessage) override;
 
   void handleRxCompletionSignal(const smile::IdealRxCompletion& completion) override;
 
   void handleTxCompletionSignal(const smile::IdealTxCompletion& completion) override;
 
-  void sendFrame(const SimTime& delay);
+  void sendFrame();
 
   SimTime frameTxInterval;
+  cMessage* frameTxTimerMessage;
   unsigned int sequenceNumberGenerator{0};
   Logger::Handle beaconsLog;
 };
