@@ -19,3 +19,4 @@ from smile.frames import Frames
 class Beacons(Frames):
     # Columns in original CSV file
     IS_ECHO = 15
+    ORIGIN_NODE_MAC_ADDRESS = 16
