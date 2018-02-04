@@ -17,8 +17,8 @@ import numpy as np
 import scipy.constants as scc
 
 from whistle.beacons import Beacons
+from whistle.anchors import Anchors
 from smile.results import Results
-
 
 # Algorithm based on:
 # S. Van Doan and J. Vesely, "The effectivity comparison of TDOA analytical solution methods,"
@@ -59,24 +59,52 @@ def localize_mobile(mac_address, anchors, all_anchors_beacons, all_mobiles_beaco
     c = scc.value('speed of light in vacuum')
     c = c * 1e-12  # m/s -> m/ps
 
-    # Filter out other mobile nodes
+    base_anchor = anchors[anchors[:, Anchors.BASE_ANCHOR] == True, :]
+    assert(base_anchor.shape[0] == 1)
+    non_base_anchor = anchors[anchors[:, Anchors.BASE_ANCHOR] == False, :]
+    assert(non_base_anchor.shape[0] >= 2)
+
     mobile_beacons = all_mobiles_beacons[all_mobiles_beacons[:, Beacons.NODE_MAC_ADDRESS] == mac_address]
+    anchors_beacons = all_anchors_beacons[all_anchors_beacons[:, Beacons.ORIGIN_NODE_MAC_ADDRESS] == mac_address]
 
-    # Filter out all sequence numbers for which mobile node received less than three beacons
     sequence_numbers, sequence_number_counts = np.unique(mobile_beacons[:, Beacons.SEQUENCE_NUMBER], return_counts=True)
-    # sequence_numbers = sequence_numbers[sequence_number_counts >= 3]
-
     results = Results.create_array(sequence_numbers.size, position_dimensions=2)
 
     for sequence_number in sequence_numbers:
-        sequence_number_condition = mobile_beacons[:, Beacons.SEQUENCE_NUMBER] == sequence_number
-        is_echo_condition = mobile_beacons[:, Beacons.IS_ECHO] == 1
-        is_not_echo_condition = np.logical_not(is_echo_condition)
+        current_anchors_beacons_condition = anchors_beacons[:, Beacons.SEQUENCE_NUMBER] == sequence_number
+        current_anchors_beacons = anchors_beacons[current_anchors_beacons_condition, :]
 
-        original_beacons_condition = np.logical_and(sequence_number_condition, is_not_echo_condition)
-        echo_beacons_condition = np.logical_and(sequence_number_condition, is_echo_condition)
+        echo_condition = current_anchors_beacons[:, Beacons.IS_ECHO] == 1
+        original_condition = np.logical_not(echo_condition)
+        base_anchor_condition = current_anchors_beacons[:, Beacons.NODE_MAC_ADDRESS] == base_anchor[0, Beacons.NODE_MAC_ADDRESS]
+        non_base_anchor_condition = np.logical_not(base_anchor_condition)
 
-        original_beacons = mobile_beacons[original_beacons_condition, :]
-        echo_beacons = mobile_beacons[echo_beacons_condition, :]
+        base_echo_condition = np.logical_and(base_anchor_condition, echo_condition)
+        base_original_condition = np.logical_and(base_anchor_condition, original_condition)
+        non_base_echo_condition = np.logical_and(non_base_anchor_condition, echo_condition)
+        non_base_original_condition = np.logical_and(non_base_anchor_condition, original_condition)
+
+        base_echo_beacons = current_anchors_beacons[base_echo_condition, :]
+        base_original_beacons = current_anchors_beacons[base_original_condition, :]
+        non_base_echo_beacons = current_anchors_beacons[non_base_echo_condition, :]
+        non_base_original_beacons = current_anchors_beacons[non_base_original_condition, :]
+
+        tD2S = np.zeros(2)
+        for i in (0, 1):
+            distance = np.abs(np.linalg.norm(base_anchor[0, Anchors.POSITION_2D] - non_base_anchor[i, Anchors.POSITION_2D]))
+            tA2S = base_echo_beacons[0, Beacons.BEGIN_CLOCK_TIMESTAMP] - base_original_beacons[0, Beacons.BEGIN_CLOCK_TIMESTAMP]
+            tB2S = non_base_echo_beacons[i, Beacons.BEGIN_CLOCK_TIMESTAMP] - non_base_original_beacons[i, Beacons.BEGIN_CLOCK_TIMESTAMP]
+            tD2S[i] = distance / c - (tB2S - tA2S)
+
+        coordinates = np.zeros((3, 2))
+        coordinates[0, :] = base_anchor[0, Anchors.POSITION_2D]
+        coordinates[1, :] = non_base_anchor[0, Anchors.POSITION_2D]
+        coordinates[2, :] = non_base_anchor[1, Anchors.POSITION_2D]
+
+        timestamps = np.array((float('nan'), tD2S[0], tD2S[1]))
+        distances = timestamps * c
+        position = _tdoa_analytical(coordinates, distances)
+
+        pass
 
     return results
