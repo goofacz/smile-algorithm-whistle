@@ -87,6 +87,7 @@ void MobileApplication::sendFrame()
   frame->setSequenceNumber(sequenceNumberGenerator);
   frame->setBitLength(10);
   frame->setEcho(false);
+  frame->setOriginNodeAddress(getMacAddress());
   sendDelayed(frame.release(), frameTxInterval, "out");
 
   sequenceNumberGenerator++;

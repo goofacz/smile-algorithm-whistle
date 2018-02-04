@@ -63,7 +63,7 @@ void AnchorApplication::handleIncommingMessage(cMessage* newMessage)
   echoFrame->setSequenceNumber(frame->getSequenceNumber());
   echoFrame->setBitLength(10);
   echoFrame->setEcho(true);
-  echoFrame->setOriginNodeAddress(frame->getSrc());
+  echoFrame->setOriginNodeAddress(frame->getOriginNodeAddress());
   sendDelayed(echoFrame.release(), echoDelay, "out");
 }
 
