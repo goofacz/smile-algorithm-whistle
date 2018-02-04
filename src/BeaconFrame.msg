@@ -15,14 +15,17 @@
 
 cplusplus{{
 #include <inet/linklayer/ideal/IdealMacFrame_m.h>  
+#include <inet/linklayer/common/MACAddress.h>
 }}
 
 namespace smile::algorithm::whistle;
 
 packet inet::IdealMacFrame;
+struct inet::MACAddress;
 
 packet BeaconFrame extends inet::IdealMacFrame
 {
     unsigned int sequenceNumber = 0;
 	bool echo = false;
+	inet::MACAddress originNodeAddress;
 }
