@@ -44,6 +44,7 @@ class AnchorApplication : public smile::IdealApplication
   bool baseAnchor{false};
   SimTime echoDelay;
   Logger::Handle beaconsLog;
+  SimTime rxBeginClockTimestamp;
 };
 
 }  // namespace whistle

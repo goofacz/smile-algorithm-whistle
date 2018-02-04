@@ -64,7 +64,9 @@ void AnchorApplication::handleIncommingMessage(cMessage* newMessage)
   echoFrame->setBitLength(10);
   echoFrame->setEcho(true);
   echoFrame->setOriginNodeAddress(frame->getOriginNodeAddress());
-  sendDelayed(echoFrame.release(), echoDelay, "out");
+
+  const auto delay = rxBeginClockTimestamp + echoDelay - clockTime();
+  sendDelayed(echoFrame.release(), delay, "out");
 }
 
 void AnchorApplication::handleRxCompletionSignal(const IdealRxCompletion& completion)
@@ -73,6 +75,8 @@ void AnchorApplication::handleRxCompletionSignal(const IdealRxCompletion& comple
   const auto entry = csv_logger::compose(getMacAddress(), completion, *frame);
   auto& logger = getLogger();
   logger.append(beaconsLog, entry);
+
+  rxBeginClockTimestamp = completion.getOperationBeginClockTimestamp();
 }
 
 void AnchorApplication::handleTxCompletionSignal(const IdealTxCompletion& completion)
