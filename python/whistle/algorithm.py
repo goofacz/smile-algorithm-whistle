@@ -20,6 +20,8 @@ from itertools import combinations
 from whistle.beacons import Beacons
 from whistle.anchors import Anchors
 from smile.results import Results
+from smile.filter import Filter
+import smile.algorithms as algorithms
 
 
 def _tdoa_analytical(coordinates, distances):
@@ -63,8 +65,8 @@ def localize_mobile(mac_address, anchors, all_anchors_beacons, all_mobiles_beaco
     non_base_anchors = anchors[anchors[:, Anchors.BASE_ANCHOR] == False, :]
     assert(non_base_anchors.shape[0] >= 3)
 
-    mobile_beacons = all_mobiles_beacons[all_mobiles_beacons[:, Beacons.NODE_MAC_ADDRESS] == mac_address]
-    anchors_beacons = all_anchors_beacons[all_anchors_beacons[:, Beacons.ORIGIN_NODE_MAC_ADDRESS] == mac_address]
+    mobile_beacons = all_mobiles_beacons[all_mobiles_beacons[:, Beacons.NODE_MAC_ADDRESS] == mac_address, :]
+    anchors_beacons = all_anchors_beacons[all_anchors_beacons[:, Beacons.ORIGIN_NODE_MAC_ADDRESS] == mac_address, :]
 
     sequence_numbers, sequence_number_counts = np.unique(mobile_beacons[:, Beacons.SEQUENCE_NUMBER], return_counts=True)
     results = Results.create_array(sequence_numbers.size, position_dimensions=2)
@@ -73,37 +75,32 @@ def localize_mobile(mac_address, anchors, all_anchors_beacons, all_mobiles_beaco
         sequence_number_condition = anchors_beacons[:, Beacons.SEQUENCE_NUMBER] == sequence_number
         current_anchors_beacons = anchors_beacons[sequence_number_condition, :]
 
-        tx_condition = current_anchors_beacons[:, Beacons.DIRECTION] == hash('TX')
-        rx_condition = current_anchors_beacons[:, Beacons.DIRECTION] == hash('RX')
+        beacons_filter = Filter()
+        beacons_filter.equal(Beacons.NODE_MAC_ADDRESS, base_anchor[0, Beacons.NODE_MAC_ADDRESS])
+        beacons_filter.equal(Beacons.IS_ECHO, 0)
+        beacons_filter.equal(Beacons.DIRECTION, hash('RX'))
+        base_original_rx_beacons = beacons_filter.execute(current_anchors_beacons)
 
-        echo_condition = current_anchors_beacons[:, Beacons.IS_ECHO] == 1
-        original_condition = np.logical_not(echo_condition)
-        base_anchor_condition = current_anchors_beacons[:, Beacons.NODE_MAC_ADDRESS] == base_anchor[0, Beacons.NODE_MAC_ADDRESS]
-        non_base_anchor_condition = np.logical_not(base_anchor_condition)
+        beacons_filter = Filter()
+        beacons_filter.equal(Beacons.NODE_MAC_ADDRESS, base_anchor[0, Beacons.NODE_MAC_ADDRESS])
+        beacons_filter.equal(Beacons.IS_ECHO, 1)
+        beacons_filter.equal(Beacons.DIRECTION, hash('TX'))
+        base_echo_tx_beacons = beacons_filter.execute(current_anchors_beacons)
 
-        base_echo_condition = np.logical_and(base_anchor_condition, echo_condition)
-        base_echo_tx_condition = np.logical_and(base_echo_condition, tx_condition)
+        beacons_filter = Filter()
+        beacons_filter.not_equal(Beacons.NODE_MAC_ADDRESS, base_anchor[0, Beacons.NODE_MAC_ADDRESS])
+        beacons_filter.equal(Beacons.IS_ECHO, 0)
+        beacons_filter.equal(Beacons.DIRECTION, hash('RX'))
+        non_base_original_rx_beacons = beacons_filter.execute(current_anchors_beacons)
 
-        base_original_condition = np.logical_and(base_anchor_condition, original_condition)
-        base_original_rx_condition = np.logical_and(base_original_condition, rx_condition)
+        beacons_filter = Filter()
+        beacons_filter.not_equal(Beacons.NODE_MAC_ADDRESS, base_anchor[0, Beacons.NODE_MAC_ADDRESS])
+        beacons_filter.equal(Beacons.IS_ECHO, 1)
+        beacons_filter.equal(Beacons.DIRECTION, hash('RX'))
+        non_base_echo_rx_beacons = beacons_filter.execute(current_anchors_beacons)
 
-        non_base_echo_condition = np.logical_and(non_base_anchor_condition, echo_condition)
-        non_base_echo_rx_condition = np.logical_and(non_base_echo_condition, rx_condition)
-
-        non_base_original_condition = np.logical_and(non_base_anchor_condition, original_condition)
-        non_base_original_rx_condition = np.logical_and(non_base_original_condition, rx_condition)
-
-        base_echo_tx_beacons = current_anchors_beacons[base_echo_tx_condition, :]
-        base_original_rx_beacons = current_anchors_beacons[base_original_rx_condition, :]
-
-        non_base_echo_rx_beacons = current_anchors_beacons[non_base_echo_rx_condition, :]
-        non_base_original_rx_beacons = current_anchors_beacons[non_base_original_rx_condition, :]
-
-        non_base_echo_rx_beacons_order = np.argsort(non_base_echo_rx_beacons[:, Beacons.NODE_MAC_ADDRESS])
-        non_base_echo_rx_beacons = non_base_echo_rx_beacons[non_base_echo_rx_beacons_order, :]
-
-        non_base_original_rx_beacons_order = np.argsort(non_base_original_rx_beacons[:, Beacons.NODE_MAC_ADDRESS])
-        non_base_original_rx_beacons = non_base_original_rx_beacons[non_base_original_rx_beacons_order, :]
+        non_base_echo_rx_beacons = algorithms.sort(non_base_echo_rx_beacons, Beacons.NODE_MAC_ADDRESS)
+        non_base_original_rx_beacons = algorithms.sort(non_base_original_rx_beacons, Beacons.NODE_MAC_ADDRESS)
 
         positions = []
         for non_base_anchors_indices in combinations((0, 1, 2), 2):
