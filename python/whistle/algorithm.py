@@ -60,60 +60,60 @@ def localize_mobile(mac_address, anchors, all_anchors_beacons, all_mobiles_beaco
     c = scc.value('speed of light in vacuum')
     c = c * 1e-12  # m/s -> m/ps
 
-    base_anchor = anchors[anchors[:, Anchors.BASE_ANCHOR] == True, :]
+    base_anchor = anchors[anchors["base_anchor"] == True, :]
     assert(base_anchor.shape[0] == 1)
-    non_base_anchors = anchors[anchors[:, Anchors.BASE_ANCHOR] == False, :]
+    non_base_anchors = anchors[anchors["base_anchor"] == False, :]
     assert(non_base_anchors.shape[0] >= 3)
 
-    mobile_beacons = all_mobiles_beacons[all_mobiles_beacons[:, Beacons.NODE_MAC_ADDRESS] == mac_address, :]
-    anchors_beacons = all_anchors_beacons[all_anchors_beacons[:, Beacons.ORIGIN_NODE_MAC_ADDRESS] == mac_address, :]
+    mobile_beacons = all_mobiles_beacons[all_mobiles_beacons["node_mac_address"] == mac_address, :]
+    anchors_beacons = all_anchors_beacons[all_anchors_beacons["origin_node_mac_address"] == mac_address, :]
 
-    sequence_numbers, sequence_number_counts = np.unique(mobile_beacons[:, Beacons.SEQUENCE_NUMBER], return_counts=True)
+    sequence_numbers, sequence_number_counts = np.unique(mobile_beacons["sequence_number"], return_counts=True)
     results = Results.create_array(sequence_numbers.size, position_dimensions=2)
 
     for sequence_number in sequence_numbers:
-        sequence_number_condition = anchors_beacons[:, Beacons.SEQUENCE_NUMBER] == sequence_number
+        sequence_number_condition = anchors_beacons["sequence_number"] == sequence_number
         current_anchors_beacons = anchors_beacons[sequence_number_condition, :]
 
         beacons_filter = Filter()
-        beacons_filter.equal(Beacons.NODE_MAC_ADDRESS, base_anchor[0, Beacons.NODE_MAC_ADDRESS])
-        beacons_filter.equal(Beacons.IS_ECHO, 0)
-        beacons_filter.equal(Beacons.DIRECTION, hash('RX'))
+        beacons_filter.equal("node_mac_address", base_anchor[0, "mac_address"])
+        beacons_filter.equal("is_echo", 0)
+        beacons_filter.equal("direction", hash('RX'))
         base_original_rx_beacons = beacons_filter.execute(current_anchors_beacons)
 
         beacons_filter = Filter()
-        beacons_filter.equal(Beacons.NODE_MAC_ADDRESS, base_anchor[0, Beacons.NODE_MAC_ADDRESS])
-        beacons_filter.equal(Beacons.IS_ECHO, 1)
-        beacons_filter.equal(Beacons.DIRECTION, hash('TX'))
+        beacons_filter.equal("node_mac_address", base_anchor[0, "mac_address"])
+        beacons_filter.equal("is_echo", 1)
+        beacons_filter.equal("direction", hash('TX'))
         base_echo_tx_beacons = beacons_filter.execute(current_anchors_beacons)
 
         beacons_filter = Filter()
-        beacons_filter.not_equal(Beacons.NODE_MAC_ADDRESS, base_anchor[0, Beacons.NODE_MAC_ADDRESS])
-        beacons_filter.equal(Beacons.IS_ECHO, 0)
-        beacons_filter.equal(Beacons.DIRECTION, hash('RX'))
+        beacons_filter.not_equal("node_mac_address", base_anchor[0, "mac_address"])
+        beacons_filter.equal("is_echo", 0)
+        beacons_filter.equal("direction", hash('RX'))
         non_base_original_rx_beacons = beacons_filter.execute(current_anchors_beacons)
 
         beacons_filter = Filter()
-        beacons_filter.not_equal(Beacons.NODE_MAC_ADDRESS, base_anchor[0, Beacons.NODE_MAC_ADDRESS])
-        beacons_filter.equal(Beacons.IS_ECHO, 1)
-        beacons_filter.equal(Beacons.DIRECTION, hash('RX'))
+        beacons_filter.not_equal("node_mac_address", base_anchor[0, "mac_address"])
+        beacons_filter.equal("is_echo", 1)
+        beacons_filter.equal("direction", hash('RX'))
         non_base_echo_rx_beacons = beacons_filter.execute(current_anchors_beacons)
 
-        non_base_echo_rx_beacons = algorithms.sort(non_base_echo_rx_beacons, Beacons.NODE_MAC_ADDRESS)
-        non_base_original_rx_beacons = algorithms.sort(non_base_original_rx_beacons, Beacons.NODE_MAC_ADDRESS)
+        non_base_echo_rx_beacons = algorithms.sort(non_base_echo_rx_beacons, "node_mac_address")
+        non_base_original_rx_beacons = algorithms.sort(non_base_original_rx_beacons, "node_mac_address")
 
         positions = []
         for non_base_anchors_indices in combinations((0, 1, 2), 2):
             tD2S = []
-            coordinates = [np.array(base_anchor[0, Anchors.POSITION_2D])]
+            coordinates = [np.array(base_anchor[0, "position_2d"])]
 
             for i in non_base_anchors_indices:
-                distance = np.abs(np.linalg.norm(base_anchor[0, Anchors.POSITION_2D] - non_base_anchors[i, Anchors.POSITION_2D]))
-                tA2S = base_echo_tx_beacons[0, Beacons.BEGIN_CLOCK_TIMESTAMP] - base_original_rx_beacons[0, Beacons.BEGIN_CLOCK_TIMESTAMP]
-                tB2S = non_base_echo_rx_beacons[i, Beacons.BEGIN_CLOCK_TIMESTAMP] - non_base_original_rx_beacons[i, Beacons.BEGIN_CLOCK_TIMESTAMP]
+                distance = np.abs(np.linalg.norm(base_anchor[0, "position_2d"] - non_base_anchors[i, "position_2d"]))
+                tA2S = base_echo_tx_beacons[0, "begin_clock_timestamp"] - base_original_rx_beacons[0, "begin_clock_timestamp"]
+                tB2S = non_base_echo_rx_beacons[i, "begin_clock_timestamp"] - non_base_original_rx_beacons[i, "begin_clock_timestamp"]
                 tD2S = np.append(tD2S, distance / c - (tB2S - tA2S))
 
-                coordinates.append(non_base_echo_rx_beacons[i, Beacons.BEGIN_TRUE_POSITION_2D])
+                coordinates.append(non_base_echo_rx_beacons[i, "begin_true_position_2d"])
 
             distances = np.array((float('nan'), tD2S[0], tD2S[1])) * c
             coordinates = np.array(coordinates)

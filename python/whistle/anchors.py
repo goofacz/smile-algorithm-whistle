@@ -19,6 +19,7 @@ from smile.nodes import Nodes
 
 class Anchors(Nodes):
     def __init__(self, *args):
+        super(Anchors, self).__init__()
         self.column_names["base_anchor"] = 4
         self.column_names["echo_delay"] = 5
 

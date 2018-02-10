@@ -28,5 +28,5 @@ if __name__ == '__main__':
     anchors_beacons = load_anchors_beacons(logs_directory_path)
     mobiles_beacons = load_mobiles_beacons(logs_directory_path)
     simulation_results = None
-    for mobile_address in mobiles[:, Anchors.MAC_ADDRESS]:
+    for mobile_address in mobiles["mac_address"]:
         results = localize_mobile(mobile_address, anchors, anchors_beacons, mobiles_beacons)

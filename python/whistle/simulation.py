@@ -16,12 +16,13 @@
 from os import path
 from whistle.anchors import Anchors
 from whistle.beacons import Beacons
+from smile.nodes import Nodes
 
 
 def load_nodes(directory_path):
     anchors_file_path = path.join(directory_path, 'whistle_anchors.csv')
     mobiles_file_path = path.join(directory_path, 'whistle_mobiles.csv')
-    return Anchors.load_csv(anchors_file_path), Anchors.load_csv(mobiles_file_path)
+    return Anchors.load_csv(anchors_file_path), Nodes.load_csv(mobiles_file_path)
 
 
 def load_mobiles_beacons(directory_path):

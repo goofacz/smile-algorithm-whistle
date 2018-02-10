@@ -19,6 +19,7 @@ from smile.frames import Frames
 
 class Beacons(Frames):
     def __init__(self, *args):
+        super(Beacons, self).__init__()
         self.column_names["is_echo"] = 15
         self.column_names["origin_node_mac_address"] = 16
 
