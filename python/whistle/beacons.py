@@ -13,10 +13,16 @@
 # along with this program.  If not, see http:#www.gnu.org/licenses/.
 #
 
+import numpy as np
 from smile.frames import Frames
 
 
 class Beacons(Frames):
-    # Columns in original CSV file
-    IS_ECHO = 15
-    ORIGIN_NODE_MAC_ADDRESS = 16
+    def __init__(self, *args):
+        self.column_names["is_echo"] = 15
+        self.column_names["origin_node_mac_address"] = 16
+
+    @staticmethod
+    def load_csv(file_path):
+        converters = Frames._get_default_converters()
+        return Beacons(np.loadtxt(file_path, delimiter=',', converters=converters, ndmin=2))

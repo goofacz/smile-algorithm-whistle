@@ -28,13 +28,13 @@ class TestAnchors(unittest.TestCase):
         content = StringIO("17592186044417,0.000000,0.000000,0.000000,1,0\n17592186044418,75.000000,0.000000,0.000000,0,35000000000")
 
         # Check whether data is loaded into correct array
-        nodes = Anchors.load_csv(content)
-        self.assertTrue(isinstance(nodes, np.ndarray))
-        self.assertTupleEqual((2, 6), nodes.shape)
+        anchors = Anchors.load_csv(content)
+        self.assertTrue(isinstance(anchors, Anchors))
+        self.assertTupleEqual((2, 6), anchors.shape)
 
         # Check access to whistle-specific fields
-        np.testing.assert_equal((1, 0), nodes[:, Anchors.BASE_ANCHOR])
-        np.testing.assert_equal((0, 35000000000), nodes[:, Anchors.ECHO_DELAY])
+        np.testing.assert_equal((1, 0), anchors["base_anchor"])
+        np.testing.assert_equal((0, 35000000000), anchors["echo_delay"])
 
 
 if __name__ == '__main__':

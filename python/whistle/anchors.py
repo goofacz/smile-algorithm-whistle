@@ -13,9 +13,15 @@
 # along with this program.  If not, see http:#www.gnu.org/licenses/.
 #
 
-import smile.nodes
+import numpy as np
+from smile.nodes import Nodes
 
 
-class Anchors(smile.nodes.Nodes):
-    BASE_ANCHOR = 4
-    ECHO_DELAY = 5
+class Anchors(Nodes):
+    def __init__(self, *args):
+        self.column_names["base_anchor"] = 4
+        self.column_names["echo_delay"] = 5
+
+    @staticmethod
+    def load_csv(file_path):
+        return Anchors(np.loadtxt(file_path, delimiter=',', ndmin=2))

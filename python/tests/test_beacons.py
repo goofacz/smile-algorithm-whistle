@@ -26,11 +26,12 @@ class TestBeacons(unittest.TestCase):
             "98765432,TX,140001177591,140001177591,37.500000,37.500000,0.000000,140011177591,140011177591,37.500000,37.500000,0.000000,17592186044417,281474976710655,2,1,1122334455")
 
         # Check access to new fields
-        nodes = Beacons.load_csv(content)
-        self.assertTupleEqual((2, 17), nodes.shape)
+        beacons = Beacons.load_csv(content)
+        self.assertTrue(isinstance(beacons, Beacons))
+        self.assertTupleEqual((2, 17), beacons.shape)
 
-        np.testing.assert_equal((0, 1), nodes[:, Beacons.IS_ECHO])
-        np.testing.assert_equal((0, 1122334455), nodes[:, Beacons.ORIGIN_NODE_MAC_ADDRESS])
+        np.testing.assert_equal((0, 1), beacons["is_echo"])
+        np.testing.assert_equal((0, 1122334455), beacons["origin_node_mac_address"])
 
 
 if __name__ == '__main__':
