@@ -26,8 +26,8 @@ struct Composer<0, algorithm::whistle::BeaconFrame>
 {
   static std::string compose(std::string buffer, const algorithm::whistle::BeaconFrame& frame)
   {
-    return composeWithBuffer(std::move(buffer), frame.getSrc(), frame.getDest(), frame.getSequenceNumber(),
-                             frame.getEcho(), frame.getOriginNodeAddress());
+    return composeWithBuffer(std::move(buffer), frame.getSequenceNumber(), frame.getEcho(),
+                             frame.getOriginNodeAddress());
   }
 };
 
