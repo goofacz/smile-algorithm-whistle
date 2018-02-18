@@ -22,5 +22,5 @@ simple MobileApplication extends IdealApplication
         @class(smile::algorithm::whistle::MobileApplication);
         int frameTxInterval @unit(ms) = default(120ms);        
         string mobilesLoggerModule = default("mobilesLog");
-        string mobileFramesLoggerModule = default("mobileFramesLog");
+        string mobileBeaconsLoggerModule = default("mobileBeaconsLog");
 }

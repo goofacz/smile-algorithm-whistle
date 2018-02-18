@@ -23,6 +23,6 @@ simple AnchorApplication extends IdealApplication
         bool baseAnchor = default(false);
         int echoDelay @unit(ms) = default(35ms);
         string anchorsLoggerModule = default("anchorsLog");
-        string anchorFramesLoggerModule = default("anchorFramesLog");
+        string anchorBeaconsLoggerModule = default("anchorBeaconsLog");
 }        
    
