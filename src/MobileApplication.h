@@ -16,6 +16,7 @@
 #pragma once
 
 #include <IdealApplication.h>
+#include <Logger.h>
 
 namespace smile {
 namespace algorithm {
@@ -48,7 +49,7 @@ class MobileApplication : public smile::IdealApplication
   SimTime frameTxInterval;
   cMessage* frameTxTimerMessage;
   unsigned int sequenceNumberGenerator{0};
-  Logger::Handle beaconsLog;
+  Logger* beaconsLog{nullptr};
 };
 
 }  // namespace whistle

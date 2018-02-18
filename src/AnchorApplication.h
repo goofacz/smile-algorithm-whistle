@@ -16,6 +16,7 @@
 #pragma once
 
 #include <IdealApplication.h>
+#include <Logger.h>
 
 namespace smile {
 namespace algorithm {
@@ -43,7 +44,7 @@ class AnchorApplication : public smile::IdealApplication
 
   bool baseAnchor{false};
   SimTime echoDelay;
-  Logger::Handle beaconsLog;
+  Logger* beaconsLog{nullptr};
   SimTime rxBeginClockTimestamp;
 };
 

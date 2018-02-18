@@ -15,6 +15,7 @@
 
 #include "AnchorApplication.h"
 #include <inet/common/INETDefs.h>
+#include <inet/common/ModuleAccess.h>
 #include "BeaconFrame_m.h"
 #include "CsvLoggerExtensions.h"
 #include "utilities.h"
@@ -38,13 +39,12 @@ void AnchorApplication::initialize(int stage)
   }
 
   if (stage == inet::INITSTAGE_APPLICATION_LAYER) {
-    auto& logger = getLogger();
-    const auto handle = logger.obtainHandle("anchors");
+    auto* anchorsLog = inet::getModuleFromPar<Logger>(par("anchorsLoggerModule"), this, true);
     const auto entry = csv_logger::compose(getMacAddress(), getCurrentTruePosition(), baseAnchor, echoDelay);
-    logger.append(handle, entry);
+    anchorsLog->append(entry);
 
     std::string handleName{"anchors_beacons"};
-    beaconsLog = logger.obtainHandle(handleName);
+    beaconsLog = inet::getModuleFromPar<Logger>(par("anchorBeaconsLoggerModule"), this, true);
   }
 }
 
@@ -73,8 +73,7 @@ void AnchorApplication::handleRxCompletionSignal(const IdealRxCompletion& comple
 {
   const auto frame = omnetpp::check_and_cast<const BeaconFrame*>(completion.getFrame());
   const auto entry = csv_logger::compose(getMacAddress(), completion, *frame);
-  auto& logger = getLogger();
-  logger.append(beaconsLog, entry);
+  beaconsLog->append(entry);
 
   rxBeginClockTimestamp = completion.getOperationBeginClockTimestamp();
 }
@@ -83,8 +82,7 @@ void AnchorApplication::handleTxCompletionSignal(const IdealTxCompletion& comple
 {
   const auto frame = omnetpp::check_and_cast<const BeaconFrame*>(completion.getFrame());
   const auto entry = csv_logger::compose(getMacAddress(), completion, *frame);
-  auto& logger = getLogger();
-  logger.append(beaconsLog, entry);
+  beaconsLog->append(entry);
 }
 
 }  // namespace whistle

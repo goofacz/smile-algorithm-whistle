@@ -22,5 +22,7 @@ simple AnchorApplication extends IdealApplication
         @class(smile::algorithm::whistle::AnchorApplication);
         bool baseAnchor = default(false);
         int echoDelay @unit(ms) = default(35ms);
+        string anchorsLoggerModule = default("anchorsLog");
+        string anchorFramesLoggerModule = default("anchorFramesLog");
 }        
    
