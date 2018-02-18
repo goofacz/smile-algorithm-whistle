@@ -17,45 +17,13 @@ import numpy as np
 import scipy.constants as scc
 
 from itertools import combinations
-from whistle.beacons import Beacons
-from whistle.anchors import Anchors
 from smile.results import Results
 from smile.filter import Filter
-import smile.algorithms as algorithms
+import smile.algorithms.tdoa as tdoa
+import smile.array as array
 
 
-def _tdoa_analytical(coordinates, distances):
-    """
-    S. Van Doan and J. Vesely, "The effectivity comparison of TDOA analytical solution methods,"
-    2015 16th International Radar Symposium (IRS), Dresden, 2015, pp. 800-805.
-    """
-    L = distances[1]
-    R = distances[2]
-    Xl = coordinates[1, 0] - coordinates[0, 0]
-    Yl = coordinates[1, 1] - coordinates[0, 1]
-    Xr = coordinates[2, 0] - coordinates[0, 0]
-    Yr = coordinates[2, 1] - coordinates[0, 1]
-
-    A = -2 * np.asanyarray(((Xl, Yl),
-                            (Xr, Yr)))
-
-    B = np.asanyarray(((-2 * L, L ** 2 - Xl ** 2 - Yl ** 2),
-                       (2 * R, R ** 2 - Xr ** 2 - Yr ** 2)))
-
-    tmp, _, _, _ = np.linalg.lstsq(A, B, rcond=None)
-    a = tmp[0, 0] ** 2 + tmp[1, 0] ** 2 - 1
-    b = 2 * (tmp[0, 0] * tmp[0, 1] + tmp[1, 0] * tmp[1, 1])
-    c = tmp[0, 1] ** 2 + tmp[1, 1] ** 2
-
-    K = np.max(np.real(np.roots((a, b, c))))
-
-    X = tmp[0, 0] * K + tmp[0, 1] + coordinates[0, 0]
-    Y = tmp[1, 0] * K + tmp[1, 1] + coordinates[0, 1]
-
-    return np.asarray((X, Y))
-
-
-def localize_mobile(mac_address, anchors, all_anchors_beacons, all_mobiles_beacons):
+def localize_mobile(mobile_node, anchors, all_anchors_beacons, all_mobiles_beacons):
     assert (scc.unit('speed of light in vacuum') == 'm s^-1')
     c = scc.value('speed of light in vacuum')
     c = c * 1e-12  # m/s -> m/ps
@@ -65,8 +33,13 @@ def localize_mobile(mac_address, anchors, all_anchors_beacons, all_mobiles_beaco
     non_base_anchors = anchors[anchors["base_anchor"] == False, :]
     assert(non_base_anchors.shape[0] >= 3)
 
-    mobile_beacons = all_mobiles_beacons[all_mobiles_beacons["node_mac_address"] == mac_address, :]
-    anchors_beacons = all_anchors_beacons[all_anchors_beacons["origin_node_mac_address"] == mac_address, :]
+    mobile_beacons_filter = Filter()
+    mobile_beacons_filter.equal("node_mac_address", mobile_node["mac_address"])
+    mobile_beacons = mobile_beacons_filter.execute(all_mobiles_beacons)
+
+    anchor_beacons_filter = Filter()
+    anchor_beacons_filter.equal("origin_node_mac_address", mobile_node["mac_address"])
+    anchors_beacons = anchor_beacons_filter.execute(all_anchors_beacons)
 
     sequence_numbers, sequence_number_counts = np.unique(mobile_beacons["sequence_number"], return_counts=True)
     results = Results.create_array(sequence_numbers.size, position_dimensions=2)
@@ -99,8 +72,8 @@ def localize_mobile(mac_address, anchors, all_anchors_beacons, all_mobiles_beaco
         beacons_filter.equal("direction", hash('RX'))
         non_base_echo_rx_beacons = beacons_filter.execute(current_anchors_beacons)
 
-        non_base_echo_rx_beacons = algorithms.sort(non_base_echo_rx_beacons, "node_mac_address")
-        non_base_original_rx_beacons = algorithms.sort(non_base_original_rx_beacons, "node_mac_address")
+        non_base_echo_rx_beacons = array.sort(non_base_echo_rx_beacons, "node_mac_address")
+        non_base_original_rx_beacons = array.sort(non_base_original_rx_beacons, "node_mac_address")
 
         positions = []
         for non_base_anchors_indices in combinations((0, 1, 2), 2):
@@ -117,7 +90,7 @@ def localize_mobile(mac_address, anchors, all_anchors_beacons, all_mobiles_beaco
 
             distances = np.array((float('nan'), tD2S[0], tD2S[1])) * c
             coordinates = np.array(coordinates)
-            positions.append(_tdoa_analytical(coordinates, distances))
+            positions.append(tdoa.doan_vesely(coordinates, distances))
 
             pass
 

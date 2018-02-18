@@ -13,23 +13,31 @@
 # along with this program.  If not, see http:#www.gnu.org/licenses/.
 #
 
-from os import path
+import os.path
+
+import numpy as np
+
+import smile.simulation
+from smile.nodes import Nodes
+from smile.results import Results
 from whistle.anchors import Anchors
 from whistle.beacons import Beacons
-from smile.nodes import Nodes
+from whistle.algorithm import localize_mobile
 
 
-def load_nodes(directory_path):
-    anchors_file_path = path.join(directory_path, 'whistle_anchors.csv')
-    mobiles_file_path = path.join(directory_path, 'whistle_mobiles.csv')
-    return Anchors.load_csv(anchors_file_path), Nodes.load_csv(mobiles_file_path)
+class Simulation(smile.simulation.Simulation):
+    def run_offline(self, directory_path):
+        anchors = Anchors.load_csv(os.path.join(directory_path, 'whistle_anchors.csv'))
+        mobiles = Nodes.load_csv(os.path.join(directory_path, 'whistle_mobiles.csv'))
+        mobile_beacons = Beacons.load_csv(os.path.join(directory_path, 'whistle_mobile_beacons.csv'))
+        anchor_beacons = Beacons.load_csv(os.path.join(directory_path, 'whistle_anchor_beacons.csv'))
 
+        results = None
+        for mobile_node in mobiles:
+            mobile_results = localize_mobile(mobile_node, anchors, anchor_beacons, mobile_beacons)
+            if results is None:
+                results = mobile_results
+            else:
+                results = Results(np.concatenate((results, mobile_results), axis=0))
 
-def load_mobiles_beacons(directory_path):
-    file_path = path.join(directory_path, 'whistle_mobiles_beacons.csv')
-    return Beacons.load_csv(file_path)
-
-
-def load_anchors_beacons(directory_path):
-    file_path = path.join(directory_path, 'whistle_anchors_beacons.csv')
-    return Beacons.load_csv(file_path)
+        return results

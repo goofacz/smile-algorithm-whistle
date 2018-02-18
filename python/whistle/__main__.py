@@ -14,9 +14,8 @@
 #
 
 import argparse
-from whistle.simulation import *
-from whistle.algorithm import *
-from whistle.anchors import Anchors
+from whistle.simulation import Simulation
+import smile.analysis as sa
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process Whistle ranging data.')
@@ -24,9 +23,9 @@ if __name__ == '__main__':
     arguments = parser.parse_args()
     logs_directory_path = arguments.logs_directory_path[0]
 
-    anchors, mobiles = load_nodes(logs_directory_path)
-    anchors_beacons = load_anchors_beacons(logs_directory_path)
-    mobiles_beacons = load_mobiles_beacons(logs_directory_path)
-    simulation_results = None
-    for mobile_address in mobiles["mac_address"]:
-        results = localize_mobile(mobile_address, anchors, anchors_beacons, mobiles_beacons)
+    simulation = Simulation()
+    results = simulation.run_offline(logs_directory_path)
+
+    unique_results = sa.obtain_unique_results(results)
+    sa.absolute_position_error_surface(unique_results)
+    sa.absolute_position_error_histogram(unique_results)
