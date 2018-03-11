@@ -43,8 +43,16 @@ def localize_mobile(mobile_node, anchors, all_anchors_beacons, all_mobiles_beaco
 
     sequence_numbers, sequence_number_counts = np.unique(mobile_beacons["sequence_number"], return_counts=True)
     results = Results.create_array(sequence_numbers.size, position_dimensions=2)
+    results["mac_address"] = mobile_node["mac_address"]
 
-    for sequence_number in sequence_numbers:
+    for j in range(sequence_numbers.size):
+        sequence_number = sequence_numbers[j]
+
+        current_mobile_beacons_filter = Filter()
+        current_mobile_beacons_filter.equal('sequence_number', sequence_number)
+        current_mobile_beacons_filter.equal("direction", hash('RX'))
+        current_mobile_beacons = current_mobile_beacons_filter.execute(mobile_beacons)
+
         sequence_number_condition = anchors_beacons["sequence_number"] == sequence_number
         current_anchors_beacons = anchors_beacons[sequence_number_condition, :]
 
@@ -92,7 +100,9 @@ def localize_mobile(mobile_node, anchors, all_anchors_beacons, all_mobiles_beaco
             coordinates = np.array(coordinates)
             positions.append(tdoa.doan_vesely(coordinates, distances))
 
-            pass
+        results[j, 'begin_true_position_3d'] = current_mobile_beacons['begin_true_position_3d']
+        results[j, 'end_true_position_3d'] = current_mobile_beacons['end_true_position_3d']
+        results[j, 'position_2d'] = positions[0]
+        pass
 
-    # TODO Fill results
     return results
