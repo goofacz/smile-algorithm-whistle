@@ -45,6 +45,7 @@ def localize_mobile(mobile_node, anchors, all_anchors_beacons, all_mobiles_beaco
     results = Results.create_array(sequence_numbers.size, position_dimensions=2)
     results["mac_address"] = mobile_node["mac_address"]
 
+    # Go through localization iterations
     for j in range(sequence_numbers.size):
         sequence_number = sequence_numbers[j]
 
@@ -96,13 +97,16 @@ def localize_mobile(mobile_node, anchors, all_anchors_beacons, all_mobiles_beaco
 
                 coordinates.append(non_base_echo_rx_beacons[i, "begin_true_position_2d"])
 
-            distances = np.array((float('nan'), tD2S[0], tD2S[1])) * c
+            distances = np.array((0., tD2S[0], tD2S[1])) * c
             coordinates = np.array(coordinates)
             positions.append(tdoa.doan_vesely(coordinates, distances))
 
         results[j, 'begin_true_position_3d'] = current_mobile_beacons['begin_true_position_3d']
         results[j, 'end_true_position_3d'] = current_mobile_beacons['end_true_position_3d']
-        results[j, 'position_2d'] = positions[0]
-        pass
+        # Choose first reasonable position (having positive X and Y value)
+        for position in positions:
+            if np.greater_equal(position, np.asarray((0, 0))).all():
+                results[j, 'position_2d'] = position
+                break
 
     return results
