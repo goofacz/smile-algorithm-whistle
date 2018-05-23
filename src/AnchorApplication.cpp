@@ -35,7 +35,7 @@ void AnchorApplication::initialize(int stage)
     baseAnchor = baseAnchorParameter.boolValue();
 
     const auto& echoDelayParameter = par("echoDelay");
-    echoDelay = SimTime(echoDelayParameter.longValue(), SIMTIME_MS);
+    echoDelay = SimTime(echoDelayParameter.intValue(), SIMTIME_MS);
   }
 
   if (stage == inet::INITSTAGE_APPLICATION_LAYER) {
