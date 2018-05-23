@@ -1,0 +1,10 @@
+{
+  "import": [
+    "smile/jsons/simulations/basic_area/analyze_configuration.json",
+    "smile/jsons/algorithms/tdoa/doan_vesely.json"
+  ],
+  "method_module": {
+    "path": "smile-algorithm-whistle/python",
+    "name": "whistle.simulation"
+  }
+}
