@@ -20,8 +20,6 @@ from itertools import combinations
 import numpy as np
 import scipy.constants as scc
 
-import smile.algorithms.common as common
-import smile.algorithms.tdoa as tdoa
 import smile.area as sarea
 import smile.array as array
 import smile.simulation as ssimulation
@@ -34,19 +32,19 @@ from whistle.beacons import Beacons
 
 class Simulation(ssimulation.Simulation):
     def __init__(self, configuration):
-        self._configuration = configuration
+        self.configuration = configuration
+        self.solver_configuration = self.configuration['algorithms']['tdoa']['solver']
 
-        solver_configuration = self._configuration['algorithms']['tdoa']['solver']
-        solver_module = importlib.import_module(solver_configuration['module'])
-        self._Solver = getattr(solver_module, solver_configuration['class'])
+        solver_module = importlib.import_module(self.solver_configuration['module'])
+        self.Solver = getattr(solver_module, self.solver_configuration['class'])
 
-        area_configuration = self._configuration['area']
+        area_configuration = self.configuration['area']
         area_file_path = area_configuration['file']
-        self._area = sarea.Area(area_file_path)
+        self.area = sarea.Area(area_file_path)
 
         assert (scc.unit('speed of light in vacuum') == 'm s^-1')
-        self._c = scc.value('speed of light in vacuum')
-        self._c *= 1e-12  # m/s -> m/ps
+        self.c = scc.value('speed of light in vacuum')
+        self.c *= 1e-12  # m/s -> m/ps
 
     def run_offline(self, directory_path):
         anchors = Anchors.load_csv(os.path.join(directory_path, 'whistle_anchors.csv'))
@@ -133,14 +131,14 @@ class Simulation(ssimulation.Simulation):
                         0, "begin_clock_timestamp"]
                     tB2S = non_base_echo_rx_beacons[i, "begin_clock_timestamp"] - non_base_original_rx_beacons[
                         i, "begin_clock_timestamp"]
-                    tD2S = np.append(tD2S, distance / self._c - (tB2S - tA2S))
+                    tD2S = np.append(tD2S, distance / self.c - (tB2S - tA2S))
 
                     coordinates.append(non_base_echo_rx_beacons[i, "begin_true_position_2d"])
 
-                distances = np.array((0., tD2S[0], tD2S[1])) * self._c
+                distances = np.array((0., tD2S[0], tD2S[1])) * self.c
                 coordinates = np.array(coordinates)
                 try:
-                    solver = self._Solver(coordinates, distances)
+                    solver = self.Solver(coordinates, distances, self.solver_configuration)
                     position = solver.localize()
                 except ValueError:
                     position = np.asarray((np.nan, np.nan))
@@ -151,8 +149,7 @@ class Simulation(ssimulation.Simulation):
             results[j, 'end_true_position_3d'] = current_mobile_beacons['end_true_position_3d']
 
             # Choose better position
-            positions = [position for position in positions if
-                         common.does_area_contain_position(position, (0, 75), (75, 0))]
+            positions = [position for position in positions if self.area.contains(position)]
             # Choose first reasonable position (having positive X and Y value)
             for position in positions:
                 if np.greater_equal(position, np.asarray((0, 0))).all():
